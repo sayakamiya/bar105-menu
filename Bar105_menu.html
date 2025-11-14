@@ -15,7 +15,6 @@
     --gap:12px;
     --btn-size:40px;
   }
-
   * {box-sizing:border-box;}
   body{
     margin:0; padding:20px;
@@ -74,6 +73,12 @@
   .editable {background:rgba(255,255,255,0.03); padding:6px; border-radius:6px;}
   .input-inline {background:transparent; border:1px dashed rgba(255,255,255,0.06); color:var(--muted); padding:4px 6px; border-radius:4px; min-width:60px;}
 
+  .del-btn{
+    margin-left:8px;
+    background:#5b1e1e; color:#ffd8d8; border:1px solid #7b2e2e;
+    border-radius:6px; padding:4px 8px; cursor:pointer; font-size:12px;
+  }
+
   body.modern {
     background:linear-gradient(180deg,#0f1112,#151619);
     color:#eee;
@@ -126,11 +131,11 @@
   </div>
 
   <div class="footer">
-    ※ 編集内容はブラウザに保存されます（localStorage）。  
-    ファイルを共有すればスタッフ全員が同じHTMLで使えます。
+    ※ 編集内容はブラウザに保存されます（localStorage）。ファイルを共有すればスタッフ全員が同じHTMLで使えます。
   </div>
 </div>
 
+<!-- 追加ダイアログ（シンプル） -->
 <div id="add-dialog" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); align-items:center; justify-content:center; z-index:50;">
   <div style="background:rgba(30,24,20,0.98); padding:18px; border-radius:10px; width:320px; color:var(--muted);">
     <h3 style="margin-top:0; color:var(--gold)">メニューを追加</h3>
@@ -149,8 +154,17 @@
 </div>
 
 <script>
-const STORAGE_KEY = "bar105_menus_v2";
-const THEME_KEY = "bar105_theme_v2";
+/*
+  V3 完全版
+  - copyOrder の改行バグ修正（実際の改行を clipboard に渡す）
+  - 編集モードでの変更を即保存（OFFにしても保持）
+  - 編集モードで削除ボタン表示・削除可能
+  - 8ボタン構成を復活 (+1 +5 +10 +50 / -1 -5 -10 -50)
+  - localStorage: メニューは各ブラウザに永続保存
+*/
+
+const STORAGE_KEY = "bar105_menus_v3";
+const THEME_KEY = "bar105_theme_v3";
 const DEFAULT_MENUS = [
   {id:"nuts", group:"food", name:"ミックスナッツ（腹20%）", price:3000},
   {id:"caprese", group:"food", name:"カプレーゼ（腹35%）", price:4500},
@@ -165,11 +179,14 @@ let order = {};
 let editMode = false;
 
 function loadMenus(){
-  try{const raw = localStorage.getItem(STORAGE_KEY);if(raw)return JSON.parse(raw);}catch(e){}
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
   localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_MENUS));
   return JSON.parse(JSON.stringify(DEFAULT_MENUS));
 }
-function saveMenus(){localStorage.setItem(STORAGE_KEY, JSON.stringify(menus));}
+function saveMenus(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(menus)); }
 
 function applyTheme(){
   const t = localStorage.getItem(THEME_KEY) || "classic";
@@ -182,117 +199,230 @@ function toggleTheme(){
   applyTheme();
 }
 
+function formatYen(n){ return "¥"+n.toLocaleString(); }
+
 function renderMenus(){
   const foodEl = document.getElementById("group-food");
   const drinkEl = document.getElementById("group-drink");
   foodEl.innerHTML = "";
   drinkEl.innerHTML = "";
+
   for(const it of menus){
-    const el = document.createElement("div");
-    el.className = "menu-item";
-    el.dataset.id = it.id;
-    el.dataset.group = it.group;
-    el.dataset.price = it.price;
-    el.dataset.name = it.name;
-    el.innerHTML = `
+    const container = document.createElement("div");
+    container.className = "menu-item";
+    container.dataset.id = it.id;
+    container.dataset.group = it.group;
+    container.dataset.price = it.price;
+    container.dataset.name = it.name;
+
+    // Build HTML with full 8-button layout
+    container.innerHTML = `
       <div class="title">
-        <span class="name" contenteditable="${editMode}">${it.name}</span>
-        <span class="price" contenteditable="${editMode}">¥${it.price.toLocaleString()}</span>
+        <span class="name" ${editMode ? 'contenteditable="true"' : ''}>${escapeHtml(it.name)}</span>
+        <span class="price" ${editMode ? 'contenteditable="true"' : ''}>${formatYen(it.price)}</span>
+        ${editMode ? '<button class="del-btn">削除</button>' : ''}
       </div>
       <div class="btn-row">
-  <button class="qty-btn" onclick="updateOrder(this,1)">+1</button>
-  <button class="qty-btn" onclick="updateOrder(this,5)">+5</button>
-  <button class="qty-btn" onclick="updateOrder(this,10)">+10</button>
-  <button class="qty-btn" onclick="updateOrder(this,50)">+50</button>
-  <span class="qty" id="qty-${it.id}">0</span>
-</div>
-<div class="btn-row">
-  <button class="qty-btn" onclick="updateOrder(this,-1)">-1</button>
-  <button class="qty-btn" onclick="updateOrder(this,-5)">-5</button>
-  <button class="qty-btn" onclick="updateOrder(this,-10)">-10</button>
-  <button class="qty-btn" onclick="updateOrder(this,-50)">-50</button>
-      </div>`;
-    if(it.group==="food")foodEl.appendChild(el);
-    else drinkEl.appendChild(el);
+        <button class="qty-btn" data-change="1">+1</button>
+        <button class="qty-btn" data-change="5">+5</button>
+        <button class="qty-btn" data-change="10">+10</button>
+        <button class="qty-btn" data-change="50">+50</button>
+        <span class="qty" id="qty-${it.id}">0</span>
+        <button class="qty-btn" data-change="-1">-1</button>
+        <button class="qty-btn" data-change="-5">-5</button>
+        <button class="qty-btn" data-change="-10">-10</button>
+        <button class="qty-btn" data-change="-50">-50</button>
+      </div>
+    `;
+
+    // Attach button handlers
+    container.querySelectorAll('.qty-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=> updateOrder(btn, parseInt(btn.dataset.change)));
+    });
+
+    // If editable, attach events to name/price and delete
+    if(editMode){
+      const nameEl = container.querySelector('.name');
+      const priceEl = container.querySelector('.price');
+
+      nameEl.addEventListener('input', ()=> {
+        // live update dataset to reflect edits immediately
+        container.dataset.name = nameEl.textContent.trim();
+      });
+      // on blur, commit to menus and save
+      nameEl.addEventListener('blur', ()=> {
+        const newName = nameEl.textContent.trim();
+        updateMenuField(it.id, {name: newName});
+      });
+
+      priceEl.addEventListener('input', ()=> {
+        // allow typing; visual only
+      });
+      priceEl.addEventListener('blur', ()=> {
+        // parse digits from priceEl
+        const digits = (priceEl.textContent || "").replace(/[^\d]/g,'');
+        const newPrice = digits === "" ? 0 : parseInt(digits,10);
+        priceEl.textContent = formatYen(newPrice);
+        updateMenuField(it.id, {price: newPrice});
+      });
+
+      const delBtn = container.querySelector('.del-btn');
+      if(delBtn){
+        delBtn.addEventListener('click', ()=>{
+          if(confirm(`「${it.name}」を削除しますか？`)){
+            menus = menus.filter(m => m.id !== it.id);
+            saveMenus();
+            renderMenus();
+          }
+        });
+      }
+    }
+
+    // Append to correct group
+    if(it.group === "food") foodEl.appendChild(container);
+    else drinkEl.appendChild(container);
   }
 }
-function updateOrder(btn,change){
-  const item=btn.closest(".menu-item");
-  const id=item.dataset.id;
-  const name=item.dataset.name;
-  const price=parseInt(item.dataset.price);
-  const qtyEl=document.getElementById("qty-"+id);
-  let qty=parseInt(qtyEl.textContent)+change;
-  if(qty<0)qty=0;
-  qtyEl.textContent=qty;
-  if(qty>0)order[id]={name,price,qty};
+
+// Utility to escape HTML when inserting textContent-like strings into innerHTML
+function escapeHtml(s){
+  if(!s) return "";
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+// Update menu field (by id), save and re-render minimal
+function updateMenuField(id, fields){
+  let changed = false;
+  menus = menus.map(m=>{
+    if(m.id === id){
+      changed = true;
+      return {...m, ...fields};
+    }
+    return m;
+  });
+  if(changed) {
+    saveMenus();
+    // re-render but preserve qtys and editMode state
+    renderMenus();
+  }
+}
+
+function updateOrder(btn, change){
+  const item = btn.closest(".menu-item");
+  const id = item.dataset.id;
+  // name/price taken from menus array to ensure latest saved values
+  const menu = menus.find(m=>m.id === id) || {name:item.dataset.name, price:parseInt(item.dataset.price)||0};
+  const name = menu.name;
+  const price = parseInt(menu.price) || 0;
+  const qtyEl = document.getElementById("qty-"+id);
+  let qty = parseInt(qtyEl.textContent || "0",10) + change;
+  if(qty < 0) qty = 0;
+  qtyEl.textContent = qty;
+  if(qty > 0) order[id] = {name, price, qty};
   else delete order[id];
   refresh();
 }
+
 function refresh(){
-  const list=document.getElementById("order-list");
-  list.innerHTML="";
-  let total=0;
+  const list = document.getElementById("order-list");
+  list.innerHTML = "";
+  let total = 0;
   for(const [id,it] of Object.entries(order)){
-    const div=document.createElement("div");
-    div.className="order-line";
-    div.innerHTML=`<span>${it.name} × ${it.qty}</span><span>¥${(it.price*it.qty).toLocaleString()}</span>`;
+    const div = document.createElement("div");
+    div.className = "order-line";
+    div.innerHTML = `<span>${escapeHtml(it.name)} × ${it.qty}</span><span>¥${(it.price*it.qty).toLocaleString()}</span>`;
     list.appendChild(div);
-    total+=it.price*it.qty;
+    total += it.price * it.qty;
   }
-  document.getElementById("total-price").textContent="¥"+total.toLocaleString();
+  document.getElementById("total-price").textContent = "¥" + total.toLocaleString();
 }
+
+// Copy order: ensure actual line breaks are sent to clipboard
+function copyOrder(){
+  const lines = Object.values(order).map(o => `${o.name}×${o.qty}`);
+  const txt = lines.length ? lines.join("\n") : "注文なし";
+  // use navigator.clipboard if available
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(()=> alert("コピーしました！"));
+  } else {
+    // fallback
+    const ta = document.createElement("textarea");
+    ta.value = txt;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); alert("コピーしました！"); } catch(e) { alert("コピーに失敗しました"); }
+    ta.remove();
+  }
+}
+
+// Copy total (string)
+function copyTotal(){
+  const total = document.getElementById("total-price").textContent;
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(total).then(()=> alert("合計をコピーしました！"));
+  } else {
+    const ta = document.createElement("textarea");
+    ta.value = total;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); alert("合計をコピーしました！"); } catch(e) { alert("コピーに失敗しました"); }
+    ta.remove();
+  }
+}
+
 function resetOrder(){
-  if(!confirm("リセットしますか？"))return;
-  order={};
-  document.querySelectorAll(".qty").forEach(e=>e.textContent="0");
+  if(!confirm("リセットしますか？")) return;
+  order = {};
+  document.querySelectorAll(".qty").forEach(e => e.textContent = "0");
   refresh();
 }
-function copyOrder(){
-  const txt=Object.values(order).map(o=>`${o.name}×${o.qty}`).join("\\n");
-  navigator.clipboard.writeText(txt||"注文なし").then(()=>alert("コピーしました！"));
-}
-function copyTotal(){
-  const total=document.getElementById("total-price").textContent;
-  navigator.clipboard.writeText(total).then(()=>alert("合計をコピーしました！"));
-}
+
 function toggleEdit(){
-  editMode=!editMode;
-  document.getElementById("toggle-edit").textContent="編集モード: "+(editMode?"ON":"OFF");
+  editMode = !editMode;
+  document.getElementById("toggle-edit").textContent = "編集モード: " + (editMode ? "ON" : "OFF");
+  // When entering edit mode, make contenteditable and show delete buttons.
+  // When leaving edit mode, the current menu edits are already saved on blur; just re-render.
   renderMenus();
 }
+
 function showAddDialog(){
-  document.getElementById("add-dialog").style.display="flex";
+  document.getElementById("add-dialog").style.display = "flex";
 }
 function hideAddDialog(){
-  document.getElementById("add-dialog").style.display="none";
+  document.getElementById("add-dialog").style.display = "none";
 }
-document.getElementById("add-confirm").onclick=function(){
-  const group=document.getElementById("new-group").value;
-  const name=document.getElementById("new-name").value.trim();
-  const price=parseInt(document.getElementById("new-price").value);
-  if(!name||isNaN(price)){alert("名前と価格を入力してください");return;}
-  const id="id"+Date.now();
-  menus.push({id,group,name,price});
+
+document.getElementById("add-confirm").onclick = function(){
+  const group = document.getElementById("new-group").value;
+  const name = (document.getElementById("new-name").value || "").trim();
+  const priceVal = document.getElementById("new-price").value;
+  const price = priceVal === "" ? 0 : parseInt(priceVal,10);
+  if(!name){ alert("名前を入力してください"); return; }
+  if(isNaN(price)){ alert("価格を正しく入力してください"); return; }
+  const id = "id" + Date.now();
+  menus.push({id, group, name, price});
   saveMenus();
   hideAddDialog();
   renderMenus();
-}
-document.getElementById("add-cancel").onclick=hideAddDialog;
-document.getElementById("add-item-btn").onclick=showAddDialog;
-document.getElementById("toggle-edit").onclick=toggleEdit;
-document.getElementById("reset-order").onclick=resetOrder;
-document.getElementById("copy-order").onclick=copyOrder;
-document.getElementById("copy-total").onclick=copyTotal;
-document.getElementById("theme-switch").onclick=toggleTheme;
-document.getElementById("reset-default").onclick=function(){
-  if(confirm("全メニューを初期状態に戻しますか？")){
+};
+
+document.getElementById("add-cancel").onclick = hideAddDialog;
+document.getElementById("add-item-btn").onclick = showAddDialog;
+document.getElementById("toggle-edit").onclick = toggleEdit;
+document.getElementById("reset-order").onclick = resetOrder;
+document.getElementById("copy-order").onclick = copyOrder;
+document.getElementById("copy-total").onclick = copyTotal;
+document.getElementById("theme-switch").onclick = toggleTheme;
+
+document.getElementById("reset-default").onclick = function(){
+  if(confirm("全メニューを初期状態に戻しますか？（現在の保存は消えます）")){
     localStorage.removeItem(STORAGE_KEY);
-    menus=loadMenus();
+    menus = loadMenus();
     renderMenus();
   }
 };
 
+// Initial render
 applyTheme();
 renderMenus();
 refresh();
