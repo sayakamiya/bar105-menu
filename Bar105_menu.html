@@ -2,8 +2,10 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Bar105 — オーダー計算ツール</title>
+<!-- モバイルでの誤ズーム防止（ボタン連打で拡大しない） -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>🍸 Bar105 オーダー計算ツール（スマホ/PC対応）</title>
+
 <style>
   :root{
     --gold:#c9a227;
@@ -13,26 +15,43 @@
     --card-wood:#2a201b;
     --accent-dark:#201814;
     --gap:12px;
-    --btn-size:40px;
+    --btn-size-desktop:40px;
+    --btn-size-mobile:54px;
+    --radius:10px;
+    --danger:#b94a4a;
   }
-  * {box-sizing:border-box;}
+
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
   body{
-    margin:0; padding:20px;
-    font-family:"Noto Sans JP",sans-serif;
+    margin:0;
+    padding:20px;
+    font-family:"Noto Sans JP",system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;
     background:linear-gradient(180deg,var(--bg-wood-1),var(--bg-wood-2));
     color:var(--muted);
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    -webkit-user-select:none;
   }
-  header{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px;}
-  h1{margin:0; color:var(--gold); font-size:20px;}
-  .top-controls{display:flex; gap:8px; align-items:center;}
-  .btn {background:#3a2b24; color:var(--muted); border:1px solid #4d3d2d; border-radius:6px; padding:8px 10px; cursor:pointer;}
+
+  /* header */
+  header{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px;}
+  h1{margin:0; color:var(--gold); font-size:18px;}
+  .top-controls{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+  .btn {background:#3a2b24; color:var(--muted); border:1px solid #4d3d2d; border-radius:8px; padding:8px 10px; cursor:pointer; font-size:14px;}
   .btn:hover{background:#4a3a2e; color:var(--gold);}
   .small {padding:6px 8px; font-size:13px;}
-  .menu-area {display:grid; grid-template-columns:1fr 1fr; gap:20px;}
+
+  /* layout */
+  .container{max-width:1200px; margin:0 auto;}
+  .menu-area {display:grid; grid-template-columns:1fr 1fr; gap:18px;}
   @media(max-width:900px){ .menu-area{grid-template-columns:1fr;} }
 
-  .menu-group {background:var(--card-wood); padding:12px; border-radius:10px;}
-  .menu-group h2{margin:0 0 10px 0; font-size:16px; color:var(--gold); display:flex; align-items:center; gap:8px;}
+  .menu-group {background:var(--card-wood); padding:12px; border-radius:var(--radius); box-shadow:0 6px 18px rgba(0,0,0,0.35);}
+  .menu-group-header {display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;}
+  .menu-group h2{margin:0; font-size:16px; color:var(--gold); display:flex; align-items:center; gap:8px;}
+  .group-actions{display:flex; gap:8px; align-items:center;}
+
   .menu-item {
     background:var(--accent-dark);
     border:1px solid #3c2f27;
@@ -43,42 +62,48 @@
     flex-direction:column;
     gap:8px;
   }
-  .menu-item .title {display:flex; justify-content:space-between; align-items:center; gap:8px;}
-  .menu-item .title .name{font-weight:700;}
-  .price{min-width:80px; text-align:right;}
+  .title-row{display:flex; justify-content:space-between; align-items:center; gap:8px;}
+  .name{font-weight:700; font-size:15px;}
+  .price{min-width:90px; text-align:right; white-space:nowrap;}
 
   .btn-row {display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+  /* desktop qty button */
   .qty-btn {
-    width:var(--btn-size); height:var(--btn-size);
+    width:var(--btn-size-desktop);
+    height:var(--btn-size-desktop);
     display:inline-grid; place-items:center;
     border-radius:8px;
     background:#3a2b24; color:var(--muted);
     border:1px solid #4d3d2d; cursor:pointer; font-weight:700;
+    touch-action: manipulation; -webkit-tap-highlight-color: rgba(0,0,0,0);
   }
   .qty-btn:hover{background:#4a3a2e; color:var(--gold);}
-  .qty {display:inline-block; min-width:48px; text-align:center; font-weight:700; font-size:16px;}
+  .qty {display:inline-block; min-width:52px; text-align:center; font-weight:800; font-size:16px;}
 
   .summary {
-    margin-top:20px;
+    margin-top:18px;
     background:var(--card-wood);
-    border-radius:10px;
-    padding:15px;
+    border-radius:var(--radius);
+    padding:14px;
+    box-shadow:0 6px 18px rgba(0,0,0,0.25);
   }
-  .order-line{display:flex; justify-content:space-between; margin-bottom:6px;}
+  .order-line{display:flex; justify-content:space-between; margin-bottom:8px; font-size:15px;}
   .total{font-size:20px; text-align:right; color:#fff; margin-top:8px;}
 
   .control{margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;}
   .control .btn{flex:1}
 
-  .editable {background:rgba(255,255,255,0.03); padding:6px; border-radius:6px;}
+  .editable {background:rgba(255,255,255,0.02); padding:6px; border-radius:6px;}
   .input-inline {background:transparent; border:1px dashed rgba(255,255,255,0.06); color:var(--muted); padding:4px 6px; border-radius:4px; min-width:60px;}
 
-  .del-btn{
-    margin-left:8px;
-    background:#5b1e1e; color:#ffd8d8; border:1px solid #7b2e2e;
-    border-radius:6px; padding:4px 8px; cursor:pointer; font-size:12px;
-  }
+  .delete-btn {background:transparent; border:1px solid rgba(255,255,255,0.06); color:var(--muted); padding:6px 8px; border-radius:6px; cursor:pointer;}
+  .delete-btn:hover{background:rgba(185,74,74,0.08); color:var(--danger); border-color:var(--danger);}
 
+  /* small helper */
+  .muted {color:#bfb3a8; font-size:13px;}
+  .inline {display:inline-flex; gap:8px; align-items:center;}
+
+  /* modern theme */
   body.modern {
     background:linear-gradient(180deg,#0f1112,#151619);
     color:#eee;
@@ -91,93 +116,230 @@
   body.modern .menu-group h2{color:#ffffff;}
   body.modern .qty-btn{background:#1b1c1d; border-color:#333;}
 
-  .footer {margin-top:14px; font-size:13px; color:#cfc7bd;}
-  .row {display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
-  select, input[type="number"], input[type="text"]{padding:6px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.06); background:transparent; color:var(--muted);}
-  .danger {background:#5b1e1e; color:#ffd8d8;}
+  /* ============= モバイル専用 ============= */
+  @media (max-width:600px) {
+    body{padding:12px;}
+    header{flex-direction:column; align-items:flex-start; gap:8px;}
+    h1{font-size:17px;}
+    .top-controls{width:100%; display:flex; gap:8px; flex-wrap:wrap;}
+    .menu-area{grid-template-columns:1fr;}
+    .menu-group{padding:10px;}
+    .menu-item{padding:12px;}
+    .title-row{flex-direction:row;}
+    .price{min-width:72px; font-size:14px;}
+
+    /* モバイル時はボタンを全幅で見やすく2段構成に */
+    .btn-row {display:block; width:100%;}
+    .btn-group-row {display:flex; gap:8px; width:100%;}
+    .qty-btn {
+      width:100%;
+      height:var(--btn-size-mobile);
+      border-radius:8px;
+      font-size:16px;
+      display:inline-flex;
+      justify-content:center;
+      align-items:center;
+      -webkit-user-select:none; user-select:none;
+      touch-action: manipulation;
+    }
+    .qty {display:block; text-align:center; font-size:18px; margin:6px 0; font-weight:800;}
+
+    .menu-item .controls-row {display:flex; gap:8px; justify-content:space-between; align-items:center;}
+    .delete-btn{padding:8px 10px;}
+    .group-actions{gap:6px;}
+  }
+
+  /* large screens tweaks */
+  @media (min-width:1200px){
+    body{padding:28px;}
+    .menu-item{padding:14px;}
+  }
+
+  /* accessibility focus */
+  .qty-btn:focus, .btn:focus, .delete-btn:focus {outline:2px solid rgba(201,162,39,0.25); outline-offset:2px;}
+
+  /* sort icon small */
+  .sort-btn {background:transparent; border:1px dashed rgba(255,255,255,0.04); color:var(--muted); padding:6px 8px; border-radius:6px; cursor:pointer;}
+  .sort-btn:hover{color:var(--gold); border-color:var(--gold);}
 </style>
 </head>
 <body>
-<header>
-  <h1>🍸 Bar105 オーダー計算ツール</h1>
-  <div class="top-controls">
-    <button class="btn small" id="toggle-edit">編集モード: OFF</button>
-    <button class="btn small" id="theme-switch">🎨 テーマ切替</button>
-    <button class="btn small" id="add-item-btn">＋メニュー追加</button>
-    <button class="btn small" id="reset-default">初期化</button>
-  </div>
-</header>
 
-<div class="menu-area">
-  <div class="menu-group" data-group="food">
-    <h2>🍽 食べ物</h2>
-    <div id="group-food"></div>
+<div class="container">
+
+  <header>
+    <h1>🍸 Bar105 オーダー計算ツール（スマホ/PC対応）</h1>
+
+    <div class="top-controls">
+      <button class="btn small" id="toggle-edit">編集 OFF</button>
+      <button class="btn small" id="theme-switch">🎨 テーマ</button>
+      <button class="btn small" id="switch-device">📱⇆💻 切替</button>
+      <button class="btn small" id="add-item-btn">＋メニュー追加</button>
+      <button class="btn small" id="reset-default">初期化</button>
+    </div>
+  </header>
+
+  <!-- ================== メニューエリア ================== -->
+  <div class="menu-area">
+
+    <!-- 食べ物グループ -->
+    <div class="menu-group" data-group="food">
+      <div class="menu-group-header">
+        <h2>🍽 食べ物</h2>
+        <div class="group-actions">
+          <button class="sort-btn" onclick="sortGroup('food')">¥安い順</button>
+        </div>
+      </div>
+      <div id="group-food"></div>
+    </div>
+
+    <!-- 飲み物グループ -->
+    <div class="menu-group" data-group="drink">
+      <div class="menu-group-header">
+        <h2>🍹 飲み物</h2>
+        <div class="group-actions">
+          <button class="sort-btn" onclick="sortGroup('drink')">¥安い順</button>
+        </div>
+      </div>
+      <div id="group-drink"></div>
+    </div>
+
   </div>
 
-  <div class="menu-group" data-group="drink">
-    <h2>🍹 飲み物</h2>
-    <div id="group-drink"></div>
-  </div>
-</div>
+  <!-- ================== 注文内容エリア ================== -->
+  <div class="summary">
+    <h2>🧾 注文内容</h2>
 
-<div class="summary">
-  <h2>🧾 注文内容</h2>
-  <div id="order-list"></div>
-  <div class="total" id="total-price">¥0</div>
-  <div class="control">
-    <button class="btn" id="copy-order">内容をコピー</button>
-    <button class="btn" id="copy-total">金額をコピー</button>
-    <button class="btn" id="reset-order">リセット</button>
+    <div id="order-list"></div>
+
+    <div class="total" id="total-price">¥0</div>
+
+    <div class="control">
+      <button class="btn" id="copy-order">内容をコピー</button>
+      <button class="btn" id="copy-total">合計をコピー</button>
+      <button class="btn" id="reset-order">リセット</button>
+    </div>
+
+    <div class="muted" style="margin-top:10px;">
+      ※ メニュー編集・追加・削除の内容はブラウザに保存されます（localStorage）<br>
+      ※ PC / スマホモードの切替はあなたの環境だけに保存されます
+    </div>
   </div>
 
-  <div class="footer">
-    ※ 編集内容はブラウザに保存されます（localStorage）。ファイルを共有すればスタッフ全員が同じHTMLで使えます。
-  </div>
-</div>
+</div><!-- container 終わり -->
 
-<!-- 追加ダイアログ（シンプル） -->
-<div id="add-dialog" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); align-items:center; justify-content:center; z-index:50;">
-  <div style="background:rgba(30,24,20,0.98); padding:18px; border-radius:10px; width:320px; color:var(--muted);">
-    <h3 style="margin-top:0; color:var(--gold)">メニューを追加</h3>
-    <div style="display:flex; flex-direction:column; gap:8px;">
+<!-- ================== メニュー追加ダイアログ ================== -->
+<div id="add-dialog" style="
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,0.55); backdrop-filter:blur(3px);
+  align-items:center; justify-content:center; z-index:999;
+">
+  <div style="
+    background:rgba(30,25,20,0.95);
+    padding:18px; border-radius:12px;
+    width:320px; color:var(--muted);
+    box-shadow:0 8px 22px rgba(0,0,0,0.45);
+  ">
+    <h3 style="margin-top:0; color:var(--gold);">メニュー追加</h3>
+
+    <div style="display:flex; flex-direction:column; gap:10px;">
+
       <label>グループ
-        <select id="new-group"><option value="food">🍽 食べ物</option><option value="drink">🍹 飲み物</option></select>
+        <select id="new-group">
+          <option value="food">🍽 食べ物</option>
+          <option value="drink">🍹 飲み物</option>
+        </select>
       </label>
-      <label>名前 <input id="new-name" type="text" placeholder="例: フライドポテト"></label>
-      <label>価格（円） <input id="new-price" type="number" min="0" value="1000"></label>
-      <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:8px;">
+
+      <label>名前
+        <input id="new-name" type="text" placeholder="例: 生ハムの盛り合わせ">
+      </label>
+
+      <label>価格（円）
+        <input id="new-price" type="number" min="0" value="1000">
+      </label>
+
+      <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:8px;">
         <button class="btn" id="add-confirm">追加</button>
         <button class="btn" id="add-cancel">キャンセル</button>
       </div>
+
+    </div>
+  </div>
+</div>
+<!-- ================== 削除確認ダイアログ ================== -->
+<div id="delete-dialog" style="
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,0.55); backdrop-filter:blur(3px);
+  align-items:center; justify-content:center; z-index:999;
+">
+  <div style="
+    background:rgba(35,20,20,0.95);
+    padding:18px; border-radius:12px;
+    width:300px; color:var(--muted);
+    box-shadow:0 8px 22px rgba(0,0,0,0.45);
+  ">
+    <h3 style="margin-top:0; color:var(--danger);">削除確認</h3>
+    <div id="delete-target-name" style="margin-bottom:12px; font-size:15px;"></div>
+
+    <div style="display:flex; gap:10px; justify-content:flex-end;">
+      <button class="btn" id="delete-confirm" style="background:#712e2e; border-color:#8a3b3b; color:#fff;">
+        削除する
+      </button>
+      <button class="btn" id="delete-cancel">キャンセル</button>
     </div>
   </div>
 </div>
 
+<!-- ================== 強制 PC / スマホ UI 切替表示エリア ================== -->
+<div id="device-mode-bar" style="
+  position:fixed; bottom:10px; right:10px;
+  background:rgba(0,0,0,0.45);
+  padding:6px 10px; border-radius:8px;
+  font-size:12px; color:var(--muted);
+  z-index:9999; pointer-events:none;
+">
+  現在モード: <span id="device-mode-text">auto</span>
+</div>
 <script>
-/*
-  V3 完全版
-  - copyOrder の改行バグ修正（実際の改行を clipboard に渡す）
-  - 編集モードでの変更を即保存（OFFにしても保持）
-  - 編集モードで削除ボタン表示・削除可能
-  - 8ボタン構成を復活 (+1 +5 +10 +50 / -1 -5 -10 -50)
-  - localStorage: メニューは各ブラウザに永続保存
-*/
+/* ============================================================
+   設定
+============================================================ */
+const STORAGE_KEY = "bar105_menu_data_v3";
+const THEME_KEY   = "bar105_theme_v3";
+const DEVICE_KEY  = "bar105_device_mode_v3"; // auto / mobile / pc
 
-const STORAGE_KEY = "bar105_menus_v3";
-const THEME_KEY = "bar105_theme_v3";
+/* ============================================================
+   最新メニュー（あなたの依頼どおり反映）
+============================================================ */
 const DEFAULT_MENUS = [
-  {id:"nuts", group:"food", name:"ミックスナッツ（腹20%）", price:3000},
-  {id:"caprese", group:"food", name:"カプレーゼ（腹35%）", price:4500},
-  {id:"ajillo", group:"food", name:"アヒージョ（腹50%）", price:9000},
-  {id:"gintonic", group:"drink", name:"ジントニック（水分35%）", price:4500},
-  {id:"mojito", group:"drink", name:"モヒート（水分40%）", price:6000},
-  {id:"tequila", group:"drink", name:"テキーラサンライズ（水分50%）", price:12000}
+  /* ==== 食べ物 ==== */
+  {id:"food_ajillo", name:"アヒージョ（腹50%）", price:10000, group:"food"},
+  {id:"food_apple", name:"りんごとシナモンのスティック（腹40%）", price:6000, group:"food"},
+  {id:"food_ham",   name:"生ハム（腹35%）", price:4500, group:"food"},
+  {id:"food_caprese", name:"カプレーゼ（腹35%）", price:4500, group:"food"},
+  {id:"food_nuts",  name:"ミックスナッツ（腹20%）", price:3000, group:"food"},
+
+  /* ==== 飲み物 ==== */
+  {id:"drink_tequila", name:"テキーラサンライズ（水分50%）", price:15000, group:"drink"},
+  {id:"drink_martini", name:"マティーニ（水分50%）", price:15000, group:"drink"},
+  {id:"drink_manhattan", name:"マンハッタン（水分50%）", price:15000, group:"drink"},
+  {id:"drink_whisky", name:"ウィスキーロック（水分40%）", price:7000, group:"drink"},
+  {id:"drink_mojito", name:"モヒート（水分40%）", price:7000, group:"drink"},   /* ←追加分 */
+  {id:"drink_gintonic", name:"ジントニック（水分35%）", price:5500, group:"drink"},
+  {id:"drink_kahlua", name:"カルーアミルク（水分35%）", price:5500, group:"drink"},
+  {id:"drink_fuzzy", name:"ファジーネーブル（水分35%）", price:5500, group:"drink"},
+  {id:"drink_craftbeer", name:"クラフトビール（水分20%）", price:4000, group:"drink"}
 ];
 
 let menus = loadMenus();
 let order = {};
 let editMode = false;
+let deleteTargetId = null;
 
+/* ============================================================
+   localStorage load / save
+============================================================ */
 function loadMenus(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -186,246 +348,335 @@ function loadMenus(){
   localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_MENUS));
   return JSON.parse(JSON.stringify(DEFAULT_MENUS));
 }
-function saveMenus(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(menus)); }
 
+function saveMenus(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(menus));
+}
+
+/* ============================================================
+   テーマ適用
+============================================================ */
 function applyTheme(){
   const t = localStorage.getItem(THEME_KEY) || "classic";
-  document.body.classList.toggle("modern", t==="modern");
-  document.getElementById("theme-switch").textContent = t==="modern" ? "🎨 Modern" : "🎨 Bar Classic";
+  document.body.classList.toggle("modern", t === "modern");
+
+  const btn = document.getElementById("theme-switch");
+  btn.textContent = (t === "modern") ? "🎨 Modern" : "🎨 Bar";
 }
+
 function toggleTheme(){
   const cur = localStorage.getItem(THEME_KEY) || "classic";
-  localStorage.setItem(THEME_KEY, cur==="classic" ? "modern" : "classic");
+  const next = (cur === "classic") ? "modern" : "classic";
+  localStorage.setItem(THEME_KEY, next);
   applyTheme();
 }
 
-function formatYen(n){ return "¥"+n.toLocaleString(); }
+/* ============================================================
+   デバイスモード管理（auto / mobile / pc）
+============================================================ */
+function getDeviceMode(){
+  return localStorage.getItem(DEVICE_KEY) || "auto";
+}
 
+function applyDeviceMode(){
+  const mode = getDeviceMode();
+  const bar = document.getElementById("device-mode-bar");
+  const label = document.getElementById("device-mode-text");
+
+  label.textContent = mode;
+
+  document.body.classList.remove("force-pc","force-mobile");
+
+  if(mode === "pc"){
+    document.body.classList.add("force-pc");
+  } else if(mode === "mobile"){
+    document.body.classList.add("force-mobile");
+  }
+}
+
+function toggleDeviceMode(){
+  const cur = getDeviceMode();
+  let next = "auto";
+  if(cur === "auto") next = "mobile";
+  else if(cur === "mobile") next = "pc";
+  else next = "auto";
+
+  localStorage.setItem(DEVICE_KEY, next);
+  applyDeviceMode();
+}
+
+/* ============================================================
+   メニュー描画
+============================================================ */
 function renderMenus(){
-  const foodEl = document.getElementById("group-food");
+  const foodEl  = document.getElementById("group-food");
   const drinkEl = document.getElementById("group-drink");
+
   foodEl.innerHTML = "";
   drinkEl.innerHTML = "";
 
   for(const it of menus){
-    const container = document.createElement("div");
-    container.className = "menu-item";
-    container.dataset.id = it.id;
-    container.dataset.group = it.group;
-    container.dataset.price = it.price;
-    container.dataset.name = it.name;
+    const card = document.createElement("div");
+    card.className = "menu-item";
+    card.dataset.id = it.id;
+    card.dataset.group = it.group;
+    card.dataset.price = it.price;
+    card.dataset.name = it.name;
 
-    // Build HTML with full 8-button layout
-    container.innerHTML = `
-      <div class="title">
-        <span class="name" ${editMode ? 'contenteditable="true"' : ''}>${escapeHtml(it.name)}</span>
-        <span class="price" ${editMode ? 'contenteditable="true"' : ''}>${formatYen(it.price)}</span>
-        ${editMode ? '<button class="del-btn">削除</button>' : ''}
-      </div>
-      <div class="btn-row">
-        <button class="qty-btn" data-change="1">+1</button>
-        <button class="qty-btn" data-change="5">+5</button>
-        <button class="qty-btn" data-change="10">+10</button>
-        <button class="qty-btn" data-change="50">+50</button>
-        <span class="qty" id="qty-${it.id}">0</span>
-        <button class="qty-btn" data-change="-1">-1</button>
-        <button class="qty-btn" data-change="-5">-5</button>
-        <button class="qty-btn" data-change="-10">-10</button>
-        <button class="qty-btn" data-change="-50">-50</button>
+    /* タイトル行 */
+    let html = `
+      <div class="title-row">
+        <span class="name" ${editMode ? 'contenteditable="true"' : ''}>${it.name}</span>
+        <span class="price" ${editMode ? 'contenteditable="true"' : ''}>¥${it.price.toLocaleString()}</span>
       </div>
     `;
 
-    // Attach button handlers
-    container.querySelectorAll('.qty-btn').forEach(btn=>{
-      btn.addEventListener('click', ()=> updateOrder(btn, parseInt(btn.dataset.change)));
+    /* スマホ/PCレイアウト共通 — ボタンセット */
+    html += `
+      <div class="controls-row">
+        
+        <div class="btn-row">
+          <div class="btn-group-row">
+            <button class="qty-btn" onclick="updateOrder(this,1)">+1</button>
+            <button class="qty-btn" onclick="updateOrder(this,5)">+5</button>
+            <button class="qty-btn" onclick="updateOrder(this,10)">+10</button>
+            <button class="qty-btn" onclick="updateOrder(this,50)">+50</button>
+          </div>
+
+          <span class="qty" id="qty-${it.id}">0</span>
+
+          <div class="btn-group-row">
+            <button class="qty-btn" onclick="updateOrder(this,-1)">-1</button>
+            <button class="qty-btn" onclick="updateOrder(this,-5)">-5</button>
+            <button class="qty-btn" onclick="updateOrder(this,-10)">-10</button>
+            <button class="qty-btn" onclick="updateOrder(this,-50)">-50</button>
+          </div>
+        </div>
+
+        ${editMode ? `<button class="delete-btn" onclick="requestDeleteItem('${it.id}','${it.name}')">削除</button>` : ""}
+      </div>
+    `;
+
+    card.innerHTML = html;
+
+    if(it.group === "food") foodEl.appendChild(card);
+    else drinkEl.appendChild(card);
+  }
+
+  /* 編集イベント追加 */
+  if(editMode){
+    const items = document.querySelectorAll(".menu-item");
+    items.forEach(card=>{
+      const id = card.dataset.id;
+
+      card.querySelector(".name").addEventListener("blur", ()=>{
+        const m = menus.find(x=>x.id===id);
+        if(m){
+          m.name = card.querySelector(".name").textContent.trim();
+          saveMenus();
+        }
+      });
+
+      card.querySelector(".price").addEventListener("blur", ()=>{
+        const m = menus.find(x=>x.id===id);
+        if(m){
+          const raw = card.querySelector(".price").textContent.replace(/[^\d]/g,"");
+          m.price = parseInt(raw) || 0;
+          saveMenus();
+          renderMenus();
+          renderOrderList();
+        }
+      });
     });
-
-    // If editable, attach events to name/price and delete
-    if(editMode){
-      const nameEl = container.querySelector('.name');
-      const priceEl = container.querySelector('.price');
-
-      nameEl.addEventListener('input', ()=> {
-        // live update dataset to reflect edits immediately
-        container.dataset.name = nameEl.textContent.trim();
-      });
-      // on blur, commit to menus and save
-      nameEl.addEventListener('blur', ()=> {
-        const newName = nameEl.textContent.trim();
-        updateMenuField(it.id, {name: newName});
-      });
-
-      priceEl.addEventListener('input', ()=> {
-        // allow typing; visual only
-      });
-      priceEl.addEventListener('blur', ()=> {
-        // parse digits from priceEl
-        const digits = (priceEl.textContent || "").replace(/[^\d]/g,'');
-        const newPrice = digits === "" ? 0 : parseInt(digits,10);
-        priceEl.textContent = formatYen(newPrice);
-        updateMenuField(it.id, {price: newPrice});
-      });
-
-      const delBtn = container.querySelector('.del-btn');
-      if(delBtn){
-        delBtn.addEventListener('click', ()=>{
-          if(confirm(`「${it.name}」を削除しますか？`)){
-            menus = menus.filter(m => m.id !== it.id);
-            saveMenus();
-            renderMenus();
-          }
-        });
-      }
-    }
-
-    // Append to correct group
-    if(it.group === "food") foodEl.appendChild(container);
-    else drinkEl.appendChild(container);
   }
 }
 
-// Utility to escape HTML when inserting textContent-like strings into innerHTML
-function escapeHtml(s){
-  if(!s) return "";
-  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+/* ============================================================
+   数量操作
+============================================================ */
+function updateOrder(btn, diff){
+  const card = btn.closest(".menu-item");
+  const id   = card.dataset.id;
+  const price = parseInt(card.dataset.price);
+
+  if(!order[id]) order[id] = 0;
+  order[id] += diff;
+  if(order[id] < 0) order[id] = 0;
+
+  document.getElementById(`qty-${id}`).textContent = order[id];
+  renderOrderList();
 }
 
-// Update menu field (by id), save and re-render minimal
-function updateMenuField(id, fields){
-  let changed = false;
-  menus = menus.map(m=>{
-    if(m.id === id){
-      changed = true;
-      return {...m, ...fields};
-    }
-    return m;
-  });
-  if(changed) {
-    saveMenus();
-    // re-render but preserve qtys and editMode state
-    renderMenus();
-  }
-}
+/* ============================================================
+   注文内容描画
+============================================================ */
+function renderOrderList(){
+  const box = document.getElementById("order-list");
+  box.innerHTML = "";
 
-function updateOrder(btn, change){
-  const item = btn.closest(".menu-item");
-  const id = item.dataset.id;
-  // name/price taken from menus array to ensure latest saved values
-  const menu = menus.find(m=>m.id === id) || {name:item.dataset.name, price:parseInt(item.dataset.price)||0};
-  const name = menu.name;
-  const price = parseInt(menu.price) || 0;
-  const qtyEl = document.getElementById("qty-"+id);
-  let qty = parseInt(qtyEl.textContent || "0",10) + change;
-  if(qty < 0) qty = 0;
-  qtyEl.textContent = qty;
-  if(qty > 0) order[id] = {name, price, qty};
-  else delete order[id];
-  refresh();
-}
-
-function refresh(){
-  const list = document.getElementById("order-list");
-  list.innerHTML = "";
   let total = 0;
-  for(const [id,it] of Object.entries(order)){
-    const div = document.createElement("div");
-    div.className = "order-line";
-    div.innerHTML = `<span>${escapeHtml(it.name)} × ${it.qty}</span><span>¥${(it.price*it.qty).toLocaleString()}</span>`;
-    list.appendChild(div);
-    total += it.price * it.qty;
+
+  for(const it of menus){
+    const q = order[it.id] || 0;
+    if(q <= 0) continue;
+
+    const line = document.createElement("div");
+    line.className = "order-line";
+    line.innerHTML = `
+      <span>${it.name} × ${q}</span>
+      <span>¥${(it.price * q).toLocaleString()}</span>
+    `;
+
+    box.appendChild(line);
+    total += it.price * q;
   }
+
   document.getElementById("total-price").textContent = "¥" + total.toLocaleString();
 }
 
-// Copy order: ensure actual line breaks are sent to clipboard
-function copyOrder(){
-  const lines = Object.values(order).map(o => `${o.name}×${o.qty}`);
-  const txt = lines.length ? lines.join("\n") : "注文なし";
-  // use navigator.clipboard if available
-  if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(txt).then(()=> alert("コピーしました！"));
-  } else {
-    // fallback
-    const ta = document.createElement("textarea");
-    ta.value = txt;
-    document.body.appendChild(ta);
-    ta.select();
-    try { document.execCommand("copy"); alert("コピーしました！"); } catch(e) { alert("コピーに失敗しました"); }
-    ta.remove();
-  }
-}
-
-// Copy total (string)
-function copyTotal(){
-  const total = document.getElementById("total-price").textContent;
-  if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(total).then(()=> alert("合計をコピーしました！"));
-  } else {
-    const ta = document.createElement("textarea");
-    ta.value = total;
-    document.body.appendChild(ta);
-    ta.select();
-    try { document.execCommand("copy"); alert("合計をコピーしました！"); } catch(e) { alert("コピーに失敗しました"); }
-    ta.remove();
-  }
-}
-
-function resetOrder(){
-  if(!confirm("リセットしますか？")) return;
-  order = {};
-  document.querySelectorAll(".qty").forEach(e => e.textContent = "0");
-  refresh();
-}
-
-function toggleEdit(){
+/* ============================================================
+   編集モード ON/OFF
+============================================================ */
+function toggleEditMode(){
   editMode = !editMode;
-  document.getElementById("toggle-edit").textContent = "編集モード: " + (editMode ? "ON" : "OFF");
-  // When entering edit mode, make contenteditable and show delete buttons.
-  // When leaving edit mode, the current menu edits are already saved on blur; just re-render.
+  document.getElementById("toggle-edit").textContent = editMode ? "編集 ON" : "編集 OFF";
   renderMenus();
 }
 
-function showAddDialog(){
+/* ============================================================
+   メニュー削除処理
+============================================================ */
+function requestDeleteItem(id, name){
+  deleteTargetId = id;
+  document.getElementById("delete-target-name").textContent = `${name} を削除しますか？`;
+  document.getElementById("delete-dialog").style.display = "flex";
+}
+
+function confirmDelete(){
+  if(deleteTargetId){
+    menus = menus.filter(m=>m.id !== deleteTargetId);
+    saveMenus();
+    delete order[deleteTargetId];
+    renderMenus();
+    renderOrderList();
+  }
+  closeDeleteDialog();
+}
+
+function closeDeleteDialog(){
+  deleteTargetId = null;
+  document.getElementById("delete-dialog").style.display = "none";
+}
+
+/* ============================================================
+   グループ単位 ソート（安い順）
+============================================================ */
+function sortGroup(group){
+  menus = menus
+    .filter(m => m.group === group)
+    .sort((a,b)=>a.price - b.price)
+    .concat(
+      menus.filter(m => m.group !== group)
+    );
+
+  saveMenus();
+  renderMenus();
+}
+
+/* ============================================================
+   メニュー追加
+============================================================ */
+function addNewItem(){
+  const name  = document.getElementById("new-name").value.trim();
+  const price = parseInt(document.getElementById("new-price").value);
+  const group = document.getElementById("new-group").value;
+
+  if(!name){ alert("名前を入力してください"); return; }
+
+  const id = "item_" + Math.random().toString(36).slice(2,9);
+
+  menus.push({id, name, price, group});
+  saveMenus();
+
+  closeAddDialog();
+  renderMenus();
+}
+
+/* ============================================================
+   ダイアログ開閉
+============================================================ */
+function openAddDialog(){
   document.getElementById("add-dialog").style.display = "flex";
 }
-function hideAddDialog(){
+function closeAddDialog(){
   document.getElementById("add-dialog").style.display = "none";
+  document.getElementById("new-name").value = "";
+  document.getElementById("new-price").value = "1000";
 }
 
-document.getElementById("add-confirm").onclick = function(){
-  const group = document.getElementById("new-group").value;
-  const name = (document.getElementById("new-name").value || "").trim();
-  const priceVal = document.getElementById("new-price").value;
-  const price = priceVal === "" ? 0 : parseInt(priceVal,10);
-  if(!name){ alert("名前を入力してください"); return; }
-  if(isNaN(price)){ alert("価格を正しく入力してください"); return; }
-  const id = "id" + Date.now();
-  menus.push({id, group, name, price});
-  saveMenus();
-  hideAddDialog();
+/* ============================================================
+   注文リセット
+============================================================ */
+function resetOrder(){
+  order = {};
   renderMenus();
-};
+  renderOrderList();
+}
 
-document.getElementById("add-cancel").onclick = hideAddDialog;
-document.getElementById("add-item-btn").onclick = showAddDialog;
-document.getElementById("toggle-edit").onclick = toggleEdit;
-document.getElementById("reset-order").onclick = resetOrder;
-document.getElementById("copy-order").onclick = copyOrder;
-document.getElementById("copy-total").onclick = copyTotal;
-document.getElementById("theme-switch").onclick = toggleTheme;
-
-document.getElementById("reset-default").onclick = function(){
-  if(confirm("全メニューを初期状態に戻しますか？（現在の保存は消えます）")){
-    localStorage.removeItem(STORAGE_KEY);
-    menus = loadMenus();
-    renderMenus();
+/* ============================================================
+   コピー
+============================================================ */
+function copyOrder(){
+  let text = "";
+  for(const it of menus){
+    const q = order[it.id] || 0;
+    if(q>0) text += `${it.name} × ${q}\n`;
   }
-};
+  navigator.clipboard.writeText(text || "(空)").then(()=>alert("コピーしました"));
+}
 
-// Initial render
+function copyTotal(){
+  const t = document.getElementById("total-price").textContent;
+  navigator.clipboard.writeText(t).then(()=>alert("コピーしました"));
+}
+
+/* ============================================================
+   全初期化（メニュー初期化）
+============================================================ */
+function resetDefault(){
+  if(!confirm("メニューを初期状態に戻しますか？")) return;
+  menus = JSON.parse(JSON.stringify(DEFAULT_MENUS));
+  saveMenus();
+  resetOrder();
+  renderMenus();
+}
+
+/* ============================================================
+   イベント登録
+============================================================ */
+document.getElementById("toggle-edit").addEventListener("click", toggleEditMode);
+document.getElementById("reset-order").addEventListener("click", resetOrder);
+document.getElementById("copy-order").addEventListener("click", copyOrder);
+document.getElementById("copy-total").addEventListener("click", copyTotal);
+document.getElementById("add-item-btn").addEventListener("click", openAddDialog);
+document.getElementById("add-confirm").addEventListener("click", addNewItem);
+document.getElementById("add-cancel").addEventListener("click", closeAddDialog);
+document.getElementById("theme-switch").addEventListener("click", toggleTheme);
+document.getElementById("reset-default").addEventListener("click", resetDefault);
+
+document.getElementById("delete-confirm").addEventListener("click", confirmDelete);
+document.getElementById("delete-cancel").addEventListener("click", closeDeleteDialog);
+
+document.getElementById("switch-device").addEventListener("click", toggleDeviceMode);
+
+/* ============================================================
+   初期起動
+============================================================ */
 applyTheme();
+applyDeviceMode();
 renderMenus();
-refresh();
+renderOrderList();
 </script>
+
 </body>
 </html>
