@@ -8,8 +8,8 @@
   body {
     margin: 0;
     padding: 40px 20px;
-    background: #0c1022; /* 深い紺 */
-    color: #e7d7a8;      /* 柔らかい金 */
+    background: #0c1022;
+    color: #e7d7a8;
     font-family: "Noto Sans JP", system-ui, sans-serif;
     text-align: center;
   }
@@ -74,23 +74,22 @@
 
 <body>
 
-  <!-- ロゴ -->
+  <!-- ロゴ（GitHub と同じ階層に logo.png がある前提） -->
   <img src="logo.png" class="logo" alt="GOG Logo">
 
   <h1>Gold Owing Group</h1>
   <div class="subtitle">Bar105 • CLUB210 • LOUNGE315</div>
 
   <div class="store-list">
-    <button class="store-btn" onclick="openStore('bar105')">Bar105</button>
-    <button class="store-btn" onclick="openStore('club210')">CLUB210</button>
-    <button class="store-btn" onclick="openStore('lounge315')">LOUNGE315</button>
+    <button class="store-btn" onclick="openStore('Bar105')">Bar105</button>
+    <button class="store-btn" onclick="openStore('CLUB210')">CLUB210</button>
+    <button class="store-btn" onclick="openStore('LOUNGE315')">LOUNGE315</button>
   </div>
 
   <footer>© Gold Owing Group</footer>
 
 <script>
 function openStore(store){
-  // multi_store_order.html を別タブで開く
   const url = "multi_store_order.html?store=" + store;
   window.open(url, "_blank");
 }
